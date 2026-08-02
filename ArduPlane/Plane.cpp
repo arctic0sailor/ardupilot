@@ -73,6 +73,7 @@ const AP_Scheduler::Task Plane::scheduler_tasks[] = {
     SCHED_TASK(update_GPS_50Hz,        50,    300,  30),
     SCHED_TASK(update_GPS_10Hz,        10,    400,  33),
     SCHED_TASK(navigate,               10,    150,  36),
+    SCHED_TASK(taxi_check_interlocks,  10,     50, 166),
     SCHED_TASK(update_compass,         10,    200,  39),
     SCHED_TASK(calc_airspeed_errors,   10,    100,  42),
     SCHED_TASK(update_alt,             10,    200,  45),
@@ -696,6 +697,12 @@ void Plane::update_flight_stage(void)
             }
 #endif
             if (auto_state.takeoff_complete == false) {
+                if (in_taxi_phase()) {
+                    // waypoints sequenced ahead of the takeoff item are flown
+                    // on the surface, with the takeoff inhibited
+                    set_flight_stage(AP_FixedWing::FlightStage::TAXI);
+                    return;
+                }
                 set_flight_stage(AP_FixedWing::FlightStage::TAKEOFF);
                 return;
             } else if (mission.get_current_nav_cmd().id == MAV_CMD_NAV_LAND) {

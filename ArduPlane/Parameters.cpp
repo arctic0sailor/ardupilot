@@ -1279,6 +1279,49 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("GUIDED_TIMEOUT", 40, ParametersG2, guided_timeout, 3.0f),
 
+    // @Param: WIG_OPTIONS
+    // @DisplayName: Wing-in-ground-effect options
+    // @Description: Options for craft operating close to a surface, where banking into a turn would put a wingtip into the ground or water. When flat turning is enabled the navigation controller's lateral acceleration demand is realised as yaw (rudder, which on a differential-thrust airframe becomes asymmetric thrust) instead of as a coordinated bank, and bank is clamped to WIG_FLAT_ROLL. When the taxi phase is enabled, AUTO waypoints sequenced before the NAV_TAKEOFF item are flown on the surface with the takeoff inhibited.
+    // @Bitmask: 0:Flat turns in cruise,1:Surface taxi phase in AUTO
+    // @User: Advanced
+    AP_GROUPINFO("WIG_OPTIONS", 41, ParametersG2, wig_options, 0),
+
+    // @Param: WIG_TAXI_SPD
+    // @DisplayName: Surface taxi speed limit
+    // @Description: Maximum ground speed commanded during the AUTO surface taxi phase. This is the primary guard against an unintended takeoff while taxiing and should be set well below the airspeed at which the aircraft can generate lift equal to its weight. Note that operating in ground effect raises the lift available at a given speed, so the margin is smaller than a free-air calculation suggests.
+    // @Units: m/s
+    // @Range: 0 30
+    // @Increment: 0.5
+    // @User: Advanced
+    AP_GROUPINFO("WIG_TAXI_SPD", 42, ParametersG2, wig_taxi_speed_max, 8.0f),
+
+    // @Param: WIG_TAXI_THR
+    // @DisplayName: Surface taxi throttle limit
+    // @Description: Maximum throttle percentage during the AUTO surface taxi phase. This limit is applied independently of the speed controller so that a speed estimation fault cannot result in full thrust being commanded on the surface.
+    // @Units: %
+    // @Range: 0 100
+    // @Increment: 1
+    // @User: Advanced
+    AP_GROUPINFO("WIG_TAXI_THR", 43, ParametersG2, wig_taxi_throttle_max, 50),
+
+    // @Param: WIG_FLAT_ROLL
+    // @DisplayName: Flat turn bank limit
+    // @Description: Maximum bank angle permitted while flat turning is active. Turn radius scales as V^2/(g*tan(WIG_FLAT_ROLL)), so this parameter trades wingtip clearance against turn radius: zero gives a wings-level turn driven only by sideslip side-force, which produces a very large radius. Set to zero only if the resulting radius is acceptable for the mission.
+    // @Units: deg
+    // @Range: 0 30
+    // @Increment: 1
+    // @User: Advanced
+    AP_GROUPINFO("WIG_FLAT_ROLL", 44, ParametersG2, wig_flat_roll_max, 5.0f),
+
+    // @Param: WIG_TAXI_ALT
+    // @DisplayName: Surface taxi abort altitude
+    // @Description: Height above the surface at which the taxi phase is aborted and the throttle cut. This is an independent interlock: it does not rely on the taxi speed or throttle controllers behaving correctly, and exists to catch an unintended takeoff during a surface run.
+    // @Units: m
+    // @Range: 0 20
+    // @Increment: 0.5
+    // @User: Advanced
+    AP_GROUPINFO("WIG_TAXI_ALT", 45, ParametersG2, wig_taxi_abort_alt, 2.0f),
+
     AP_GROUPEND
 };
 

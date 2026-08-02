@@ -292,6 +292,18 @@ void Plane::calc_airspeed_errors()
     // Apply airspeed limit
     target_airspeed_cm = constrain_int32(target_airspeed_cm, airspeed_lower_bound*100, aparm.airspeed_max*100);
 
+    if (flight_stage == AP_FixedWing::FlightStage::TAXI) {
+        /*
+          Limit the commanded speed while taxiing on the surface. This is
+          applied after the normal airspeed limits, and deliberately below
+          airspeed_min, because the point of a surface taxi is to stay well
+          below the speed at which the aircraft can fly. Note that operating in
+          ground effect raises the lift available at a given speed, so the
+          margin this leaves is smaller than a free air calculation suggests.
+         */
+        target_airspeed_cm = MIN(target_airspeed_cm, g2.wig_taxi_speed_max * 100);
+    }
+
     // use the TECS view of the target airspeed for reporting, to take
     // account of the landing speed
     airspeed_error = TECS_controller.get_target_airspeed() - airspeed_measured;

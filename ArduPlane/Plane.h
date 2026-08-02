@@ -1103,6 +1103,15 @@ private:
     void update_fly_forward(void);
     void update_flight_stage();
     void set_flight_stage(AP_FixedWing::FlightStage fs);
+
+    // taxi.cpp - wing-in-ground-effect surface taxi and flat turning
+    bool wig_option_is_set(WIGOption option) const;
+    bool in_taxi_phase(void) const;
+    bool flat_turn_active(void) const;
+    int32_t flat_turn_roll_limit_cd(void) const;
+    int16_t calc_taxi_steering(void);
+    int16_t calc_flat_turn_yaw(void);
+    void taxi_check_interlocks(void);
     bool flight_option_enabled(FlightOptions flight_option) const;
 
     // navigation.cpp

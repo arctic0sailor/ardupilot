@@ -145,6 +145,13 @@ enum class UseReverseThrust {
     THERMAL              = (1<<15),
 };
 
+// options for craft operating close to a surface, where a coordinated bank
+// would put a wingtip into the ground or water
+enum WIGOption {
+    WIG_FLAT_TURN        = (1 << 0),
+    WIG_TAXI_PHASE       = (1 << 1),
+};
+
 enum FlightOptions {
     DIRECT_RUDDER_ONLY   = (1 << 0),
     CRUISE_TRIM_THROTTLE = (1 << 1),

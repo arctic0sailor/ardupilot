@@ -368,7 +368,10 @@ void Plane::stabilize_stick_mixing_fbw()
 void Plane::stabilize_yaw()
 {
     bool ground_steering = false;
-    if (landing.is_flaring()) {
+    if (flight_stage == AP_FixedWing::FlightStage::TAXI) {
+        // taxiing on the surface: the aircraft is steered, never banked
+        ground_steering = true;
+    } else if (landing.is_flaring()) {
         // in flaring then enable ground steering
         ground_steering = true;
     } else {
@@ -390,7 +393,10 @@ void Plane::stabilize_yaw()
       FBWA mode (when we are below GROUND_STEER_ALT)
      */
     float steering_output = 0.0;
-    if (landing.is_flaring() ||
+    if (flight_stage == AP_FixedWing::FlightStage::TAXI) {
+        // follow the navigation solution along the surface
+        steering_output = calc_taxi_steering();
+    } else if (landing.is_flaring() ||
         (steer_state.hold_course_cd != -1 && ground_steering)) {
         steering_output = calc_nav_yaw_course();
     } else if (ground_steering) {
@@ -399,8 +405,14 @@ void Plane::stabilize_yaw()
 
     /*
       now calculate rudder for the rudder
+
+      when turning flat the navigation lateral acceleration demand is realised
+      as yaw rather than as a coordinated bank
      */
-    const float rudder_output = calc_nav_yaw_coordinated();
+    const float rudder_output = (flat_turn_active() &&
+                                 flight_stage != AP_FixedWing::FlightStage::TAXI)
+                                    ? calc_flat_turn_yaw()
+                                    : calc_nav_yaw_coordinated();
 
     if (!ground_steering) {
         // Not doing ground steering, output rudder on steering channel
@@ -651,6 +663,12 @@ void Plane::calc_nav_pitch()
 void Plane::calc_nav_roll()
 {
     int32_t commanded_roll = nav_controller->nav_roll_cd();
+    if (flat_turn_active()) {
+        // the lateral acceleration demand is being realised as yaw, so clamp
+        // bank to keep a wingtip out of the surface
+        const int32_t flat_limit_cd = flat_turn_roll_limit_cd();
+        commanded_roll = constrain_int32(commanded_roll, -flat_limit_cd, flat_limit_cd);
+    }
     nav_roll_cd = constrain_int32(commanded_roll, -roll_limit_cd, roll_limit_cd);
     update_load_factor();
 }

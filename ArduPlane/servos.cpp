@@ -564,6 +564,12 @@ float Plane::apply_throttle_limits(float throttle_in)
         // Allow throttle cutoff when flaring.
         // This is to allow the aircraft to bleed speed faster and land with a shut off thruster.
         min_throttle = 0;
+    } else if (flight_stage == AP_FixedWing::FlightStage::TAXI) {
+        // Limit throttle while taxiing on the surface. This is applied
+        // independently of the speed controller so that a speed estimate fault
+        // cannot command full thrust on the surface.
+        max_throttle = MIN(max_throttle, g2.wig_taxi_throttle_max.get());
+        min_throttle = MIN(min_throttle, max_throttle);
     }
 
     // Handle throttle limits for transition conditions.

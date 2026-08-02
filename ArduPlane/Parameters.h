@@ -570,6 +570,14 @@ public:
 
     AP_Float guided_timeout;
 
+    // wing-in-ground-effect support: surface taxi phase and flat (yaw-based)
+    // turning, for craft that must not bank when operating close to a surface
+    AP_Int16 wig_options;
+    AP_Float wig_taxi_speed_max;
+    AP_Int8  wig_taxi_throttle_max;
+    AP_Float wig_flat_roll_max;
+    AP_Float wig_taxi_abort_alt;
+
 #if AP_SCRIPTING_ENABLED && AP_FOLLOW_ENABLED
     AP_Follow follow;
 #endif

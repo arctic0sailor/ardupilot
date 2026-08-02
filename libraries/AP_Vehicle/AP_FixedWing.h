@@ -50,6 +50,7 @@ struct AP_FixedWing {
         VTOL          = 2,
         NORMAL        = 3,
         LAND          = 4,
+        TAXI          = 5,
         ABORT_LANDING = 7
     };
 
