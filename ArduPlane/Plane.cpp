@@ -73,7 +73,6 @@ const AP_Scheduler::Task Plane::scheduler_tasks[] = {
     SCHED_TASK(update_GPS_50Hz,        50,    300,  30),
     SCHED_TASK(update_GPS_10Hz,        10,    400,  33),
     SCHED_TASK(navigate,               10,    150,  36),
-    SCHED_TASK(taxi_check_interlocks,  10,     50, 166),
     SCHED_TASK(update_compass,         10,    200,  39),
     SCHED_TASK(calc_airspeed_errors,   10,    100,  42),
     SCHED_TASK(update_alt,             10,    200,  45),
@@ -145,6 +144,10 @@ const AP_Scheduler::Task Plane::scheduler_tasks[] = {
 #if AP_QUICKTUNE_ENABLED
     SCHED_TASK(update_quicktune, 40, 100, 163),
 #endif
+    // NOTE: the scheduler requires this table to be in ascending priority
+    // order (AP_Scheduler::init raises a flow_of_control internal error
+    // otherwise), so new tasks belong at the end with a higher priority value.
+    SCHED_TASK(taxi_check_interlocks,  10,     50, 166),
 };
 
 void Plane::get_scheduler_tasks(const AP_Scheduler::Task *&tasks,
@@ -696,13 +699,15 @@ void Plane::update_flight_stage(void)
                 return;
             }
 #endif
+            if (in_taxi_phase()) {
+                // waypoints sequenced ahead of the takeoff item are flown on
+                // the surface, with the takeoff inhibited. This is checked
+                // before takeoff_complete, which start_command() sets true for
+                // every nav command and so is already true while taxiing.
+                set_flight_stage(AP_FixedWing::FlightStage::TAXI);
+                return;
+            }
             if (auto_state.takeoff_complete == false) {
-                if (in_taxi_phase()) {
-                    // waypoints sequenced ahead of the takeoff item are flown
-                    // on the surface, with the takeoff inhibited
-                    set_flight_stage(AP_FixedWing::FlightStage::TAXI);
-                    return;
-                }
                 set_flight_stage(AP_FixedWing::FlightStage::TAKEOFF);
                 return;
             } else if (mission.get_current_nav_cmd().id == MAV_CMD_NAV_LAND) {

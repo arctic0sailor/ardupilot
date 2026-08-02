@@ -94,6 +94,27 @@ bool Plane::suppress_throttle(void)
         return true;
     }
 
+    if (in_taxi_phase()) {
+        /*
+          Taxiing on the surface needs thrust, and the normal unsuppression
+          conditions cannot be met from a standing start: the aircraft is not
+          in the auto-takeoff branch (start_command() has already set
+          takeoff_complete), it is not above the home altitude, and it has no
+          GPS movement yet - so throttle would stay suppressed and the vehicle
+          could never begin to move. The taxi speed and throttle limits provide
+          the protection that suppression gives elsewhere.
+
+          This tests in_taxi_phase() rather than flight_stage, deliberately.
+          update_flight_stage() only runs while the throttle is NOT suppressed,
+          so keying this on FlightStage::TAXI deadlocks: the stage cannot be
+          set until the throttle is unsuppressed, and the throttle is not
+          unsuppressed until the stage is set. in_taxi_phase() is derived from
+          mode, arming and mission state alone, so it breaks the cycle.
+         */
+        throttle_suppressed = false;
+        return false;
+    }
+
     if (!throttle_suppressed) {
         // we've previously met a condition for unsupressing the throttle
         return false;
@@ -569,6 +590,20 @@ float Plane::apply_throttle_limits(float throttle_in)
         // independently of the speed controller so that a speed estimate fault
         // cannot command full thrust on the surface.
         max_throttle = MIN(max_throttle, g2.wig_taxi_throttle_max.get());
+
+        /*
+          Enforce the taxi speed limit on the throttle directly.
+
+          Clamping the speed controller's target is only advisory - the target
+          is what the controller aims for, not a bound on what the aircraft
+          reaches. In test the aircraft overshot an 8 m/s taxi target by about
+          50%, which is not an acceptable basis for a no-takeoff guarantee, so
+          the limit is closed here on measured ground speed as well.
+         */
+        if (gps.status() >= AP_GPS::GPS_OK_FIX_2D &&
+            gps.ground_speed() > g2.wig_taxi_speed_max) {
+            max_throttle = 0;
+        }
         min_throttle = MIN(min_throttle, max_throttle);
     }
 

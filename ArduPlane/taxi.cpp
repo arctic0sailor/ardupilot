@@ -44,8 +44,14 @@ bool Plane::in_taxi_phase(void) const
     if (!arming.is_armed_and_safety_off()) {
         return false;
     }
-    if (auto_state.takeoff_complete) {
-        // the takeoff has already run; we are flying
+    /*
+      Note that auto_state.takeoff_complete is NOT a usable test here:
+      start_command() sets it true for every nav command, so it is already true
+      while sequencing ordinary waypoints. taxi_takeoff_started is latched by
+      do_takeoff() instead, and cleared when AUTO is entered.
+     */
+    if (taxi_takeoff_started) {
+        // the mission has reached its takeoff item; we are flying
         return false;
     }
     // taxi only while the mission is still sequencing items ahead of the

@@ -1105,6 +1105,10 @@ private:
     void set_flight_stage(AP_FixedWing::FlightStage fs);
 
     // taxi.cpp - wing-in-ground-effect surface taxi and flat turning
+    // latched when the mission reaches its NAV_TAKEOFF item; the surface taxi
+    // phase runs only ahead of that. auto_state.takeoff_complete cannot be
+    // used for this, as start_command() sets it true for every nav command.
+    bool taxi_takeoff_started;
     bool wig_option_is_set(WIGOption option) const;
     bool in_taxi_phase(void) const;
     bool flat_turn_active(void) const;

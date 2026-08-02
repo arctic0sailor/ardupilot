@@ -24,6 +24,11 @@ bool ModeAuto::_enter()
     plane.auto_state.vtol_mode = false;
 #endif
     plane.next_WP_loc = plane.prev_WP_loc = plane.current_loc;
+
+    // a fresh entry into AUTO may re-run a mission that begins with a surface
+    // taxi, so clear the latch that ends the taxi phase
+    plane.taxi_takeoff_started = false;
+
     // start or resume the mission, based on MIS_AUTORESET
     plane.mission.start_or_resume();
 
