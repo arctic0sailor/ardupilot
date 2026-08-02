@@ -141,14 +141,44 @@ int16_t Plane::calc_flat_turn_yaw(void)
 void Plane::taxi_check_interlocks(void)
 {
     if (flight_stage != AP_FixedWing::FlightStage::TAXI) {
+        taxi_above_surface_ms = 0;
         return;
     }
 
-    // relative_altitude is height above home in metres, the same measure the
-    // ground steering logic uses to decide it is on the ground
-    const float height_above_surface = relative_altitude;
+    /*
+      Height above home, computed the same way the GLOBAL_POSITION_INT
+      relative_alt field is, because that is the measure that reads zero on the
+      ground.
 
-    if (height_above_surface > g2.wig_taxi_abort_alt) {
+      Two other sources were tried first and both were unusable for an
+      interlock this tight: relative_altitude and
+      adjusted_relative_altitude_cm() each sat above 5 m for seconds on a
+      stationary aircraft, aborting the taxi before the first waypoint. Both
+      carry a terrain / field elevation adjustment (the vehicle reports
+      "Field Elevation Set" and clamps a terrain offset at startup), which is
+      appropriate for their normal users and wrong here, where what matters is
+      simply "has the aircraft left the surface it started on".
+     */
+    const float height_above_surface = (current_loc.alt - home.alt) * 0.01f;
+
+    /*
+      Debounce before acting. The altitude estimate carries several metres of
+      error while the EKF and barometer settle after startup, which is enough
+      to trip this interlock on a stationary aircraft that has not moved -
+      observed firing before the first waypoint was even reached. Require the
+      condition to hold continuously so that a transient cannot abort a
+      perfectly good taxi, while a real climb still trips it promptly.
+     */
+    const uint32_t now_ms = AP_HAL::millis();
+    if (height_above_surface <= g2.wig_taxi_abort_alt) {
+        taxi_above_surface_ms = 0;
+        return;
+    }
+    if (taxi_above_surface_ms == 0) {
+        taxi_above_surface_ms = now_ms;
+        return;
+    }
+    if (now_ms - taxi_above_surface_ms > 1000) {
         gcs().send_text(MAV_SEVERITY_CRITICAL,
                         "Taxi: left surface at %.1fm, aborting",
                         double(height_above_surface));

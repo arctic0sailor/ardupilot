@@ -1109,6 +1109,9 @@ private:
     // phase runs only ahead of that. auto_state.takeoff_complete cannot be
     // used for this, as start_command() sets it true for every nav command.
     bool taxi_takeoff_started;
+    // time the aircraft has been continuously above the taxi abort height,
+    // used to debounce the interlock against altitude estimate transients
+    uint32_t taxi_above_surface_ms;
     bool wig_option_is_set(WIGOption option) const;
     bool in_taxi_phase(void) const;
     bool flat_turn_active(void) const;
