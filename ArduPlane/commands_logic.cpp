@@ -680,6 +680,21 @@ bool Plane::verify_nav_wp(const AP_Mission::Mission_Command& cmd)
     } else if (cmd_passby == 0) {
         acceptance_distance_m = nav_controller->turn_distance(get_wp_radius(), auto_state.next_turn_angle);
     }
+
+    if (flight_stage == AP_FixedWing::FlightStage::TAXI) {
+        /*
+          Surface navigation needs far tighter position keeping than flight, so
+          the taxi phase uses its own acceptance radius rather than WP_RADIUS.
+
+          Note this deliberately bypasses turn_distance(), which inflates the
+          acceptance radius according to the upcoming turn angle so that an
+          aircraft can begin cutting the corner early. That is right in the air
+          and wrong on the surface, where the point of the waypoint is to be
+          driven to. Without this the aircraft reports reaching a waypoint tens
+          of metres away.
+         */
+        acceptance_distance_m = g2.wig_taxi_wp_radius;
+    }
     const float wp_dist = current_loc.get_distance(flex_next_WP_loc);
     if (wp_dist <= acceptance_distance_m) {
         gcs().send_text(MAV_SEVERITY_INFO, "Reached waypoint #%i dist %um",

@@ -1322,6 +1322,15 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("WIG_TAXI_ALT", 45, ParametersG2, wig_taxi_abort_alt, 2.0f),
 
+    // @Param: WIG_TAXI_WP_R
+    // @DisplayName: Surface taxi waypoint radius
+    // @Description: Waypoint acceptance radius used during the surface taxi phase, replacing WP_RADIUS. Surface manoeuvring needs far tighter position keeping than flight, and the normal acceptance distance is additionally inflated by the upcoming turn angle so that the aircraft can cut the corner, which is not wanted on the surface. Set small (a few metres or less) for accurate surface navigation. Note the aircraft is still accepted as having reached a waypoint if it flies past it, so that it cannot circle indefinitely chasing a point it is unable to touch.
+    // @Units: m
+    // @Range: 0.5 50
+    // @Increment: 0.5
+    // @User: Advanced
+    AP_GROUPINFO("WIG_TAXI_WP_R", 46, ParametersG2, wig_taxi_wp_radius, 2.0f),
+
     AP_GROUPEND
 };
 
