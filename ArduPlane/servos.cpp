@@ -599,10 +599,19 @@ float Plane::apply_throttle_limits(float throttle_in)
           reaches. In test the aircraft overshot an 8 m/s taxi target by about
           50%, which is not an acceptable basis for a no-takeoff guarantee, so
           the limit is closed here on measured ground speed as well.
+
+          The limit is TAPERED rather than switched. Cutting throttle to zero
+          the moment the limit is crossed lets momentum carry the vehicle well
+          past it (measured ~40% overshoot) and makes the taxi surge and coast
+          in a visible stop-start cycle. Winding throttle down over the last
+          20% of the speed band instead lets it settle AT the limit.
          */
         if (gps.status() >= AP_GPS::GPS_OK_FIX_2D &&
-            gps.ground_speed() > g2.wig_taxi_speed_max) {
-            max_throttle = 0;
+            is_positive(g2.wig_taxi_speed_max)) {
+            const float limit = g2.wig_taxi_speed_max;
+            const float taper = constrain_float(
+                (limit - gps.ground_speed()) / (0.2f * limit), 0.0f, 1.0f);
+            max_throttle *= taper;
         }
         min_throttle = MIN(min_throttle, max_throttle);
     }
