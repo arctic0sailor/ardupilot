@@ -140,7 +140,22 @@ int16_t Plane::calc_flat_turn_yaw(void)
  */
 void Plane::taxi_check_interlocks(void)
 {
+    // Diagnostic: when the taxi phase does not engage, report WHICH condition
+    // is refusing, rather than leaving it to be inferred from behaviour.
     if (flight_stage != AP_FixedWing::FlightStage::TAXI) {
+        static uint32_t last_report_ms;
+        const uint32_t now = AP_HAL::millis();
+        if (wig_option_is_set(WIGOption::WIG_TAXI_PHASE) &&
+            control_mode == &mode_auto &&
+            now - last_report_ms > 5000) {
+            last_report_ms = now;
+            gcs().send_text(MAV_SEVERITY_INFO,
+                            "taxi? armed=%u tkoff_started=%u navcmd=%u supp=%u",
+                            (unsigned)arming.is_armed_and_safety_off(),
+                            (unsigned)taxi_takeoff_started,
+                            (unsigned)mission.get_current_nav_cmd().id,
+                            (unsigned)throttle_suppressed);
+        }
         taxi_above_surface_ms = 0;
         return;
     }

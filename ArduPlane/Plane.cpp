@@ -580,6 +580,15 @@ void Plane::set_flight_stage(AP_FixedWing::FlightStage fs)
         return;
     }
 
+    // Report taxi-phase transitions. The taxi limits and steering are all
+    // keyed on this stage, so when the vehicle behaves as though none of them
+    // exist, the first question is whether the stage was ever entered.
+    if (fs == AP_FixedWing::FlightStage::TAXI) {
+        gcs().send_text(MAV_SEVERITY_INFO, "TAXI phase ENTER");
+    } else if (flight_stage == AP_FixedWing::FlightStage::TAXI) {
+        gcs().send_text(MAV_SEVERITY_INFO, "TAXI phase EXIT -> stage %u", (unsigned)fs);
+    }
+
     const bool is_landing = (fs == AP_FixedWing::FlightStage::LAND);
 
     landing.handle_flight_stage_change(is_landing);
