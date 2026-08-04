@@ -771,6 +771,19 @@ void Plane::update_flight_stage(void)
  */
 void Plane::disarm_if_autoland_complete()
 {
+    if (flight_stage == AP_FixedWing::FlightStage::TAXI) {
+        /*
+          A taxiing vehicle is legitimately not flying, so the auto-disarm
+          would fire on it. That is self-locking and unrecoverable: the taxi
+          phase requires being armed, and the throttle stays suppressed while
+          the phase is inactive, so once auto-disarmed on the water the vehicle
+          can never begin moving again. Observed as a craft sitting at zero
+          throttle at the first waypoint forever, only at real-time speed --
+          under time acceleration the taxi gets going before the delay expires.
+         */
+        return;
+    }
+
     if (landing.get_disarm_delay() > 0 &&
         !is_flying() &&
         arming.arming_required() != AP_Arming::Required::NO &&
