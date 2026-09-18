@@ -710,7 +710,10 @@ protected:
 private:
     // error in metres, output in flap degrees
     // P, I, D, FF, IMAX, FLTT, FLTE, FLTD
-    AC_PID pid{30.0, 15.0, 3.0, 0.0, 25.0, 0.0, 0.0, 5.0};
+    // defaults are HALF the gains the control study adopted (P 30, I 15, D 3 at 12 m/s, 25 % flap): over the band of
+    // foils and loop delays this could meet, half gains kept gain x2 / div 4 / 30 deg phase margins in 99 % of cases,
+    // the adopted gains in 67 %. Reducing gain is always safe in this loop; raise after measuring the loop delay.
+    AC_PID pid{15.0, 7.5, 1.5, 0.0, 25.0, 0.0, 0.0, 5.0};
 
     AP_Float flap_max;
     AP_Float flap_neutral;
