@@ -12,6 +12,8 @@
 #include "config.h"
 #include "pullup.h"
 #include "systemid.h"
+#include <AC_PID/AC_PID.h>
+#include <Filter/LowPassFilter.h>
 
 #ifndef AP_QUICKTUNE_ENABLED
 #define AP_QUICKTUNE_ENABLED HAL_QUADPLANE_ENABLED
@@ -70,6 +72,7 @@ public:
 #if MODE_AUTOLAND_ENABLED
         AUTOLAND      = 26,
 #endif
+        FOIL          = 27,
 
     // Mode number 30 reserved for "offboard" for external/lua control.
     };
@@ -634,6 +637,132 @@ public:
     bool allows_autoland_direction_capture() const override { return true; }
 #endif
 
+};
+
+/*
+  FOIL: FBWA plus a height-hold loop on a hydrofoil lift flap.
+
+  Roll, pitch and throttle are FBWA's. On top of that one PID takes
+  height error (m) and outputs a foil flap angle (deg) on servo
+  function k_foil_flap. There is no preferred height: while the
+  elevator stick is outside FOIL_DZ the target follows the measured
+  height (the pilot is changing height through pitch and the loop
+  does not fight), and when the stick returns to centre the height is
+  captured and held. The target stops following when the height
+  predicted FOIL_GUARD_TC ahead leaves the FOIL_HGT_MIN to
+  FOIL_HGT_MAX band, so at the edge of that band the loop opposes the
+  pilot. The pitch demand at full elevator stick is the smaller of
+  FOIL_PTCH_MAX and the pitch that gives a height rate of
+  FOIL_CLMB_MAX at the current ground speed, rather than FBWA's pitch
+  limits.
+
+  Sign convention: positive flap = trailing edge down = more foil
+  lift = craft rises; the PID output is positive when the height is
+  below the target.
+ */
+class ModeFoil : public ModeFBWA
+{
+public:
+    ModeFoil();
+
+    Number mode_number() const override { return Number::FOIL; }
+    const char *name() const override { return "FOIL"; }
+    const char *name4() const override { return "FOIL"; }
+
+    // FBWA stick handling, then the height loop. run() is inherited
+    // from FBWA (stabilisation and pilot throttle)
+    void update() override;
+
+    bool does_auto_throttle() const override { return false; }
+
+    bool mode_allows_autotuning() const override { return false; }
+
+    // slew the flap towards FOIL_FLAP_NEUT. Called from set_servos()
+    // on every loop in which FOIL is not the active mode, so that the
+    // output function is always driven
+    void output_neutral();
+
+    // var_info for holding parameter information
+    static const struct AP_Param::GroupInfo var_info[];
+
+    // bits of FOIL_OPTIONS
+    enum class Option {
+        INTEGRATE_WHILE_TRACKING = (1U << 0), // keep integrating while the stick is deflected
+    };
+
+    // source of the height measurement, FOIL_HGT_SRC
+    enum class HeightSource {
+        RANGEFINDER = 0,    // downward rangefinder read directly, tilt corrected
+        AHRS_HOME   = 1,    // AHRS height above home (test/SITL only)
+    };
+
+    // bits of the St field of the FOIL log message
+    enum StateBits : uint8_t {
+        STATE_TRACKING       = (1U << 0),
+        STATE_SATURATED      = (1U << 1),
+        STATE_SENSOR_INVALID = (1U << 2),
+    };
+
+protected:
+    bool _enter() override;
+    void _exit() override;
+
+private:
+    // error in metres, output in flap degrees
+    // P, I, D, FF, IMAX, FLTT, FLTE, FLTD
+    AC_PID pid{30.0, 15.0, 3.0, 0.0, 25.0, 0.0, 0.0, 5.0};
+
+    AP_Float flap_max;
+    AP_Float flap_neutral;
+    AP_Float slew_rate;
+    AP_Float speed_ref;
+    AP_Float speed_min;
+    AP_Float speed_exp;
+    AP_Int8  height_source;
+    AP_Float height_min;
+    AP_Float height_max;
+    AP_Float capture_tc;
+    AP_Float stick_deadzone;
+    AP_Int16 loss_ms;
+    AP_Int16 options;
+    AP_Float pitch_max;
+    AP_Float climb_max;
+    AP_Float guard_tc;
+    AP_Float ff_v2;
+
+    bool option_is_set(Option option) const {
+        return (options.get() & int16_t(option)) != 0;
+    }
+
+    // scale the pitch demand from the elevator stick to FOIL_PTCH_MAX and FOIL_CLMB_MAX
+    void update_pitch_demand(float pitch_input);
+
+    // measure the height. Returns false if the source is not valid
+    bool get_height(float &height_m) const;
+
+    // gain schedule multiplier from ground speed
+    float speed_scale(float &speed_ms) const;
+
+    // capture a new target from the current height
+    void capture_target();
+
+    // apply the slew limit and write the flap output
+    void write_flap(float flap_deg, float dt);
+
+    void write_log(float error_m, float speed_ms, float scale, uint8_t state) const;
+
+    LowPassFilterFloat hdot_filter; // vertical speed from differenced height, m/s
+    float height;                   // last valid height, m
+    float target;                   // height target, m
+    float last_flap_deg;            // last flap angle written, deg
+    float engage_speed;             // speed used by the feed forward, latched at entry, m/s
+    bool flap_initialised;          // true once last_flap_deg holds a written value
+    bool have_last_height;          // true if height holds the previous loop's sample
+    bool capture_pending;           // true until the first update() after entry has captured the target
+    bool tracking;                  // true while the elevator stick is deflected
+    bool saturated;                 // true if the PID output was clipped on the last loop
+    bool fallback_failed;           // true if the switch to FBWA on height loss was refused
+    uint32_t last_valid_ms;         // time of the last valid height
 };
 
 class ModeFBWB : public Mode

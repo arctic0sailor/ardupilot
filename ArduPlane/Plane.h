@@ -177,6 +177,7 @@ public:
 #if MODE_AUTOLAND_ENABLED
     friend class ModeAutoLand;
 #endif
+    friend class ModeFoil;
 #if AP_EXTERNAL_CONTROL_ENABLED
     friend class AP_ExternalControl_Plane;
 #endif
@@ -332,6 +333,7 @@ private:
 #if MODE_AUTOLAND_ENABLED
     ModeAutoLand mode_autoland;
 #endif
+    ModeFoil mode_foil;
 #if HAL_SOARING_ENABLED
     ModeThermal mode_thermal;
 #endif

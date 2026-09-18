@@ -371,6 +371,13 @@ public:
         k_param_mode_autoland,
         k_param__gcs,
 
+        // waterfly fork. Appended after the last upstream key (not
+        // directly after k_param_mode_autoland, which would renumber
+        // k_param__gcs and orphan every stored MAV_ parameter) with a
+        // gap so that upstream appends do not collide on a rebase.
+        // Keys are 9 bits: the maximum is 511.
+        k_param_mode_foil = 300,
+
     };
 
     AP_Int16 format_version;

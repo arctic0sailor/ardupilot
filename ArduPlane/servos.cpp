@@ -962,6 +962,12 @@ void Plane::set_servos(void)
     // set airbrake outputs
     airbrake_update();
 
+    // FOIL mode's update() owns the foil flap while it is the active
+    // mode. In every other mode, drive the flap to its neutral angle
+    if (control_mode != &mode_foil) {
+        mode_foil.output_neutral();
+    }
+
     // slew rate limit throttle
     throttle_slew_limit();
 
@@ -1127,8 +1133,8 @@ void Plane::update_throttle_hover() {
  */
 void Plane::servos_auto_trim(void)
 {
-    // only in auto modes and FBWA
-    if (!control_mode->does_auto_throttle() && control_mode != &mode_fbwa) {
+    // only in auto modes, FBWA and FOIL (which is FBWA for the control surfaces)
+    if (!control_mode->does_auto_throttle() && control_mode != &mode_fbwa && control_mode != &mode_foil) {
         return;
     }
     if (!arming.is_armed_and_safety_off()) {

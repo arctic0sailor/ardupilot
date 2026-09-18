@@ -331,6 +331,7 @@ bool Mode::use_throttle_limits() const
         this == &plane.mode_training ||
         this == &plane.mode_acro ||
         this == &plane.mode_fbwa ||
+        this == &plane.mode_foil ||
         this == &plane.mode_autotune) {
         // a manual throttle mode
         return !plane.g.throttle_passthru_stabilize;
@@ -363,6 +364,7 @@ bool Mode::use_battery_compensation() const
         this == &plane.mode_training ||
         this == &plane.mode_acro ||
         this == &plane.mode_fbwa ||
+        this == &plane.mode_foil ||
         this == &plane.mode_autotune) {
         // a manual throttle mode
         return false;
