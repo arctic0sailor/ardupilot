@@ -213,6 +213,11 @@ void SRV_Channel::aux_servo_function_setup(void)
         set_angle(1);
         break;
 #endif
+    case k_foil_flap:
+        // hydrofoil lift flap, commanded in centidegrees: +/-3000 maps
+        // to SERVOn_MAX/MIN and zero to SERVOn_TRIM
+        set_angle(3000);
+        break;
     default:
         break;
     }

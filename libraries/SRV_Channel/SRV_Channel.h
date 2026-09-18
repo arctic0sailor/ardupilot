@@ -219,6 +219,7 @@ public:
         k_actuator4             = 187,
         k_actuator5             = 188,
         k_actuator6             = 189,
+        k_foil_flap             = 190,   // hydrofoil lift flap driven by Plane's FOIL mode height loop, +/-30 deg (waterfly fork: not an upstream allocation, re-check on rebase)
         k_nr_aux_servo_functions         ///< This must be the last enum value (only add new values _before_ this one)
     } Function;
 
